@@ -173,7 +173,7 @@ scanBtn.addEventListener("click", async () => {
   qrDiv.innerHTML = "";
 
   try {
-    scanner = new window.Html5Qrcode("qrScanner");
+    scanner = new Html5Qrcode("qrScanner");
 
     const cameras = await Html5Qrcode.getCameras();
     if (!cameras || cameras.length === 0) {
@@ -226,6 +226,7 @@ scanBtn.addEventListener("click", async () => {
     alert("Camera permission denied or unavailable");
   }
 });
+
 
 
 function stopScanner() {
