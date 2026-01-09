@@ -1,6 +1,6 @@
 import { supabase } from "./supabase.js";
 import { requireAuth } from "./auth.js";
-import { Html5Qrcode } from "https://unpkg.com/html5-qrcode@2.3.8/minified/html5-qrcode.min.js";
+
 
 let pendingOnlineSale = null;
 
@@ -183,7 +183,8 @@ scanBtn.addEventListener("click", async () => {
     tempStream.getTracks().forEach(track => track.stop());
 
     /* ===== Create QR Scanner ===== */
-    scanner = new Html5Qrcode("qrScanner");
+    scanner = new window.Html5Qrcode("qrScanner");
+
 
     await scanner.start(
       { facingMode: "environment" },   // safer than cameraId
