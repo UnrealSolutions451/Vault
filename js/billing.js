@@ -1,7 +1,6 @@
 import { supabase } from "./supabase.js";
 import { requireAuth } from "./auth.js";
 
-
 let pendingOnlineSale = null;
 
 /* ================= AUTH ================= */
@@ -52,18 +51,10 @@ const cartBody = document.getElementById("cartBody");
 const totalAmount = document.getElementById("totalAmount");
 const checkoutBtn = document.getElementById("checkoutBtn");
 const paymentModeEl = document.getElementById("paymentMode");
-
 const upiModal = document.getElementById("upiModal");
 const closeUPIBtn = document.getElementById("closeUPIBtn");
-const confirmOnlineBtn = document.getElementById("confirmOnlineBtn");
-
 const qrScannerModal = document.getElementById("qrScannerModal");
 const closeScannerBtn = document.getElementById("closeScannerBtn");
-
-/* ================= HELPERS ================= */
-function calculateTotal() {
-  return cart.reduce((sum, item) => sum + Number(item.price), 0);
-}
 
 /* ================= LOAD INVENTORY ================= */
 async function loadInventory() {
@@ -98,8 +89,10 @@ searchInput.addEventListener("input", () => {
   matches.forEach(item => {
     const div = document.createElement("div");
     div.innerText = `${item.name} (${item.brand || "-"})`;
-    div.style.cursor = "pointer";
     div.style.padding = "6px";
+    div.style.cursor = "pointer";
+    div.onmouseenter = () => div.style.background = "#f1f5f9";
+    div.onmouseleave = () => div.style.background = "white";
 
     div.addEventListener("click", () => {
       searchInput.value = item.name;
@@ -167,83 +160,73 @@ cartBody.addEventListener("click", (e) => {
   }
 });
 
-/* ================= QR SCANNER ================= */
-scanBtn.addEventListener("click", async () => {
+/* =========================================================
+   ✅ QR SCANNER — USING Html5QrcodeScanner (STABLE METHOD)
+   ========================================================= */
+
+scanBtn.addEventListener("click", () => {
   qrScannerModal.style.display = "flex";
+
   const qrDiv = document.getElementById("qrScanner");
   qrDiv.innerHTML = "";
 
   try {
-    /* ===== Force browser permission request ===== */
-    const tempStream = await navigator.mediaDevices.getUserMedia({
-      video: { facingMode: "environment" }
-    });
-
-    // Stop temporary stream immediately (important!)
-    tempStream.getTracks().forEach(track => track.stop());
-
-    /* ===== Create QR Scanner ===== */
-    scanner = new window.Html5Qrcode("qrScanner");
-
-
-    await scanner.start(
-      { facingMode: "environment" },   // safer than cameraId
-      { fps: 10, qrbox: 250 },
-      (decodedText) => {
-        try {
-          const payload = JSON.parse(decodedText);
-
-          if (payload.store_id !== profile.store_id) {
-            alert("QR belongs to another store");
-            return;
-          }
-
-          const item = inventory.find(i => i.id === payload.item_id);
-          if (!item) return alert("Item not found");
-
-          cart.push({
-            id: item.id,
-            name: item.name,
-            price: item.price,
-            size: payload.size && payload.size !== "NA" ? payload.size : null
-          });
-
-          renderCart();
-          stopScanner();
-
-        } catch (err) {
-          console.error("QR parse error:", err);
-          alert("Invalid QR code");
-        }
-      }
+    scanner = new window.Html5QrcodeScanner(
+      "qrScanner",
+      { fps: 10, qrbox: 280 },
+      false
     );
 
+    scanner.render(onScanSuccess, () => {});
   } catch (err) {
-    console.error("Camera error:", err);
-
-    if (err.name === "NotAllowedError") {
-      alert("Camera permission blocked. Please allow camera access in browser settings.");
-    } 
-    else if (err.name === "NotFoundError") {
-      alert("No camera found on this device.");
-    } 
-    else {
-      alert("Camera unavailable or already in use.");
-    }
+    console.error("Scanner init error:", err);
+    alert("Unable to start camera");
   }
 });
 
-function stopScanner() {
-  if (scanner) {
-    scanner.stop().catch(() => {});
-    scanner = null;
+function onScanSuccess(decodedText) {
+  try {
+    const payload = JSON.parse(decodedText);
+
+    if (payload.store_id !== profile.store_id) {
+      alert("QR belongs to another store");
+      return;
+    }
+
+    const item = inventory.find(i => i.id === payload.item_id);
+    if (!item) {
+      alert("Item not found");
+      return;
+    }
+
+    cart.push({
+      id: item.id,
+      name: item.name,
+      price: item.price,
+      size: payload.size && payload.size !== "NA" ? payload.size : null
+    });
+
+    renderCart();
+    closeScanner();
+
+  } catch (err) {
+    console.warn("Invalid QR payload:", decodedText);
+    alert("Invalid QR Code");
   }
+}
+
+function closeScanner() {
+  try {
+    if (scanner) {
+      scanner.clear();
+      scanner = null;
+    }
+  } catch (e) {}
+
   qrScannerModal.style.display = "none";
 }
 
-closeScannerBtn.addEventListener("click", stopScanner);
-
-
+closeScannerBtn.addEventListener("click", closeScanner);
 
 /* ================= CHECKOUT ================= */
 checkoutBtn.addEventListener("click", () => {
@@ -255,84 +238,64 @@ checkoutBtn.addEventListener("click", () => {
   const mode = paymentModeEl.value;
 
   if (mode === "online") {
-    openUPIQr();   // QR only
+    openUPIQr();   // show QR only
   } else {
-    finalizeSale("cash");  // cash → direct save
+    finalizeSale("cash");  // cash → directly complete
   }
-});
-
-/* ================= UPI FLOW ================= */
-function openUPIQr() {
-  const total = calculateTotal();
-
-  generateUPI(total);
-
-  pendingOnlineSale = {
-    total,
-    cart: [...cart]
-  };
-
-  upiModal.style.display = "flex";
-}
-
-confirmOnlineBtn.addEventListener("click", async () => {
-  if (!pendingOnlineSale) return;
-
-  await finalizeSale("online");
-
-  pendingOnlineSale = null;
-  upiModal.style.display = "none";
-});
-
-closeUPIBtn.addEventListener("click", () => {
-  upiModal.style.display = "none";
 });
 
 /* ================= FINALIZE SALE ================= */
 async function finalizeSale(mode) {
-  try {
-    const total = calculateTotal();
+  const total = Number(totalAmount.innerText);
 
-    const { error } = await supabase.from("sales").insert([{
-      store_id: profile.store_id,
-      total,
-      payment_mode: mode,
-      items: cart
-    }]);
+  const { error } = await supabase.from("sales").insert([{
+    store_id: profile.store_id,
+    total,
+    payment_mode: mode
+  }]);
 
-    if (error) throw error;
-
-    // Deduct inventory
-    for (let item of cart) {
-      await supabase.rpc("reduce_inventory", {
-        item_id_input: item.id,
-        size_input: item.size || null
-      });
-    }
-
-    alert("Order completed ✅");
-
-    cart = [];
-    renderCart();
-    await loadInventory();
-
-  } catch (err) {
-    console.error("Sale Error:", err);
-    alert("Failed to complete order");
+  if (error) {
+    console.error(error);
+    return alert("Failed to save sale");
   }
+
+  // Deduct inventory
+  for (let item of cart) {
+    await supabase.rpc("reduce_inventory", {
+      item_id_input: item.id,
+      size_input: item.size || null
+    });
+  }
+
+  alert("Order completed ✅");
+  cart = [];
+  renderCart();
+  await loadInventory();
 }
 
-/* ================= GENERATE UPI QR ================= */
-function generateUPI(amount) {
-  const upiId = profile.upi_id || "ahmed451ali@ybl";
+/* ================= UPI QR ================= */
+function openUPIQr() {
+  const amount = Number(totalAmount.innerText);
+  const upiId = profile.upi_id || "demo@upi";
   const payload = `upi://pay?pa=${upiId}&pn=Vault&am=${amount}&cu=INR`;
 
   const upiQRDiv = document.getElementById("upiQR");
   upiQRDiv.innerHTML = "";
+  new QRCode(upiQRDiv, { text: payload, width: 220, height: 220 });
 
-  new QRCode(upiQRDiv, {
-    text: payload,
-    width: 220,
-    height: 220
-  });
+  upiModal.style.display = "flex";
+
+  // Save pending sale
+  pendingOnlineSale = true;
 }
+
+closeUPIBtn.addEventListener("click", () => {
+  upiModal.style.display = "none";
+
+  if (pendingOnlineSale) {
+    if (confirm("Payment completed? Mark sale as completed?")) {
+      finalizeSale("online");
+      pendingOnlineSale = null;
+    }
+  }
+});
