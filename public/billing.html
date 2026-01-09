@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Vault • Billing</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="icon" href="data:,">
+
+<!-- QR Code & QR Scanner Libraries -->
+<script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.8/minified/html5-qrcode.min.js"></script>
+
+<!-- Shared Vault Styles (Inventory page CSS) -->
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<div class="sidebar">
+  <div class="logo">Vault</div>
+  <div class="nav">
+    <a href="index.html">Dashboard</a>
+    <a href="inventory.html">Inventory</a>
+    <a href="billing.html" class="active">Billing</a>
+    <a href="expenses.html">Expenses</a>
+    <a href="staff.html">Staff</a>
+    <a href="analytics.html">Analytics</a>
+  </div>
+</div>
+
+<!-- MAIN AREA -->
+<div class="main">
+  <div class="page-title">Billing</div>
+
+  <!-- ADD ITEM CARD -->
+  <div class="card">
+    <h3>Add Item</h3>
+    <div class="form-grid">
+      <div style="position: relative;">
+        <input type="text" id="searchInput" placeholder="Search item...">
+        <div id="suggestions" class="suggestions"></div>
+      </div>
+      <select id="sizeSelect">
+        <option value="">No Size</option>
+        <option>S</option>
+        <option>M</option>
+        <option>L</option>
+        <option>XL</option>
+        <option>XXL</option>
+      </select>
+      <button id="addBtn" class="primary-btn">Add</button>
+      <button id="scanBtn" class="primary-btn">📷 Scan QR</button>
+    </div>
+  </div>
+
+  <!-- CART CARD -->
+  <div class="card">
+    <h3>Cart</h3>
+    <table class="cart-table">
+      <thead>
+        <tr>
+          <th>Item</th>
+          <th>Size</th>
+          <th>Price</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody id="cartBody"></tbody>
+    </table>
+    <div class="total">Total: ₹<span id="totalAmount">0</span></div>
+  </div>
+
+  <!-- CHECKOUT CARD -->
+  <div class="card">
+    <h3>Checkout</h3>
+    <div class="form-grid">
+      <select id="paymentMode">
+        <option value="cash">Cash</option>
+        <option value="online">Online (UPI)</option>
+      </select>
+      <button id="checkoutBtn" class="primary-btn">Complete Order</button>
+    </div>
+  </div>
+</div>
+
+<!-- UPI MODAL -->
+<div class="modal" id="upiModal">
+  <div class="modal-card">
+    <h3>Scan to Pay</h3>
+
+    <div id="upiQR" style="display:flex; justify-content:center;"></div>
+
+    <div style="margin-top:15px; text-align:center;">
+      <button id="confirmOnlineBtn" class="primary-btn">
+        ✅ Payment Received – Complete Order
+      </button>
+    </div>
+
+    <br>
+    <button id="closeUPIBtn" class="secondary-btn">Close</button>
+  </div>
+</div>
+
+
+<!-- QR SCANNER MODAL -->
+<div class="modal" id="qrScannerModal">
+  <div class="modal-card">
+    <h3>Scan QR Code</h3>
+    <div id="qrScanner"></div>
+    <br>
+    <button id="closeScannerBtn" class="primary-btn">Close</button>
+  </div>
+</div>
+
+<script type="module" src="js/billing.js"></script>
+</body>
+</html>
