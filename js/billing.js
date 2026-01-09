@@ -175,8 +175,22 @@ scanBtn.addEventListener("click", async () => {
   try {
     scanner = new window.Html5Qrcode("qrScanner");
 
+    const cameras = await Html5Qrcode.getCameras();
+    if (!cameras || cameras.length === 0) {
+      alert("No camera found on this device");
+      return;
+    }
+
+    // Prefer back camera if available
+    let cameraId = cameras[0].id;
+    const backCam = cameras.find(c =>
+      c.label.toLowerCase().includes("back") ||
+      c.label.toLowerCase().includes("rear")
+    );
+    if (backCam) cameraId = backCam.id;
+
     await scanner.start(
-      { facingMode: "environment" },
+      cameraId,
       { fps: 10, qrbox: 250 },
       (decodedText) => {
         try {
@@ -206,11 +220,13 @@ scanBtn.addEventListener("click", async () => {
         }
       }
     );
+
   } catch (err) {
     console.error("Camera error:", err);
     alert("Camera permission denied or unavailable");
   }
 });
+
 
 function stopScanner() {
   if (scanner) {
