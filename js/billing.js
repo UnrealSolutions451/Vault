@@ -243,17 +243,6 @@ closeScannerBtn.addEventListener("click", stopScanner);
 
 
 
-
-function stopScanner() {
-  if (scanner) {
-    scanner.stop().catch(() => {});
-    scanner = null;
-  }
-  qrScannerModal.style.display = "none";
-}
-
-closeScannerBtn.addEventListener("click", stopScanner);
-
 /* ================= CHECKOUT ================= */
 checkoutBtn.addEventListener("click", () => {
   if (cart.length === 0) {
