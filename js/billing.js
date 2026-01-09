@@ -1,5 +1,6 @@
 import { supabase } from "./supabase.js";
 import { requireAuth } from "./auth.js";
+import { Html5Qrcode } from "https://unpkg.com/html5-qrcode@2.3.8/minified/html5-qrcode.min.js";
 
 let pendingOnlineSale = null;
 
