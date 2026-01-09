@@ -173,24 +173,19 @@ scanBtn.addEventListener("click", async () => {
   qrDiv.innerHTML = "";
 
   try {
+    /* ===== Force browser permission request ===== */
+    const tempStream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: "environment" }
+    });
+
+    // Stop temporary stream immediately (important!)
+    tempStream.getTracks().forEach(track => track.stop());
+
+    /* ===== Create QR Scanner ===== */
     scanner = new Html5Qrcode("qrScanner");
 
-    const cameras = await Html5Qrcode.getCameras();
-    if (!cameras || cameras.length === 0) {
-      alert("No camera found on this device");
-      return;
-    }
-
-    // Prefer back camera if available
-    let cameraId = cameras[0].id;
-    const backCam = cameras.find(c =>
-      c.label.toLowerCase().includes("back") ||
-      c.label.toLowerCase().includes("rear")
-    );
-    if (backCam) cameraId = backCam.id;
-
     await scanner.start(
-      cameraId,
+      { facingMode: "environment" },   // safer than cameraId
       { fps: 10, qrbox: 250 },
       (decodedText) => {
         try {
@@ -215,7 +210,7 @@ scanBtn.addEventListener("click", async () => {
           stopScanner();
 
         } catch (err) {
-          console.error(err);
+          console.error("QR parse error:", err);
           alert("Invalid QR code");
         }
       }
@@ -223,9 +218,29 @@ scanBtn.addEventListener("click", async () => {
 
   } catch (err) {
     console.error("Camera error:", err);
-    alert("Camera permission denied or unavailable");
+
+    if (err.name === "NotAllowedError") {
+      alert("Camera permission blocked. Please allow camera access in browser settings.");
+    } 
+    else if (err.name === "NotFoundError") {
+      alert("No camera found on this device.");
+    } 
+    else {
+      alert("Camera unavailable or already in use.");
+    }
   }
 });
+
+function stopScanner() {
+  if (scanner) {
+    scanner.stop().catch(() => {});
+    scanner = null;
+  }
+  qrScannerModal.style.display = "none";
+}
+
+closeScannerBtn.addEventListener("click", stopScanner);
+
 
 
 
