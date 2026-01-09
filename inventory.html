@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Vault — Inventory</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<div class="sidebar">
+  <div class="logo">Vault</div>
+  <div class="nav">
+    <a href="index.html">Dashboard</a>
+    <a href="inventory.html" class="active">Inventory</a>
+    <a href="billing.html">Billing</a>
+    <a href="expenses.html">Expenses</a>
+    <a href="staff.html">Staff</a>
+    <a href="analytics.html">Analytics</a>
+  </div>
+</div>
+
+<!-- MAIN -->
+<div class="main">
+
+  <div class="page-title">Inventory Management</div>
+
+  <!-- ADD INVENTORY -->
+  <div class="card">
+    <h3>Add / Update Item</h3>
+    
+    <div class="form-grid">
+      <input id="name" placeholder="Item Name">
+      <input id="brand" placeholder="Brand">
+      <input id="price" type="number" placeholder="Price ₹">
+
+      <!-- TOTAL QTY -->
+      <input id="qty" type="number" placeholder="Total Quantity">
+    </div>
+
+    <div style="margin-top:10px;">
+      <label>
+        <input type="checkbox" id="hasSizes"> Has Sizes?
+      </label>
+    </div>
+
+    <!-- SIZE FIELDS -->
+    <div class="sizes-box" id="sizesBox">
+      <div class="sizes-grid">
+        <input id="s" type="number" placeholder="S">
+        <input id="m" type="number" placeholder="M">
+        <input id="l" type="number" placeholder="L">
+        <input id="xl" type="number" placeholder="XL">
+        <input id="xxl" type="number" placeholder="XXL">
+      </div>
+    </div>
+
+    <br>
+    <button onclick="saveItem()">Save Item</button>
+  </div>
+  
+
+
+  <!-- INVENTORY LIST -->
+   <input type="text" id="searchInput" placeholder="Search item..."
+  style="margin-bottom:10px; padding:8px; width:100%;"/>
+  <div class="card">
+    <h3>Inventory List</h3>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Brand</th>
+          <th>Price</th>
+          <th>Total</th>
+          <th>S</th>
+          <th>M</th>
+          <th>L</th>
+          <th>XL</th>
+          <th>XXL</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody id="inventoryBody"></tbody>
+    </table>
+  </div>
+  <div class="toolbar">
+  <button onclick="printAllQR()" class="primary-btn">
+    🖨️ Print All QR
+  </button>
+  </div>
+
+</div>
+<script src="https://cdn.jsdelivr.net/npm/qrcodejs/qrcode.min.js"></script>
+<script type="module" src="js/inventory.js"></script>
+<!-- QR MODAL -->
+<div id="qrModal" class="modal">
+  <div class="modal-card">
+    <h3>Generate QR Codes</h3>
+    <div id="qrContainer"></div>
+
+    <button onclick="printQR()">🖨 Print</button>
+    <button onclick="closeQR()">Close</button>
+  </div>
+</div>
+
+
+</body>
+</html>
