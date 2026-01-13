@@ -305,3 +305,70 @@ th {
 .suggestions div:hover {
   background: #f1f5f9;
 }
+/* ---------------- MOBILE RESPONSIVE ---------------- */
+@media (max-width: 768px) {
+
+  .row,
+  .controls {
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  input, select, button {
+    width: 100%;
+  }
+
+  table {
+    display: block;
+    overflow-x: auto;
+    white-space: nowrap;
+  }
+
+  #upiModal .modal-content,
+  #qrScannerModal .modal-content {
+    width: 95%;
+    max-width: 380px;
+  }
+
+  #qrScanner {
+    width: 100%;
+  }
+}
+@media (max-width: 768px) {
+  .sidebar {
+    position: relative;
+    width: 100%;
+    height: auto;
+  }
+
+  .main {
+    margin-left: 0;
+    padding: 12px;
+  }
+
+  .form-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .card {
+    padding: 12px;
+  }
+
+  table {
+    font-size: 14px;
+  }
+
+  .primary-btn {
+    width: 100%;
+  }
+}
+#qrScanner video {
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover !important;
+}
+
+#qrScanner {
+  width: 100%;
+  height: 70vh;
+}
