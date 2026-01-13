@@ -364,11 +364,12 @@ th {
 }
 #qrScanner video {
   width: 100% !important;
-  height: 100% !important;
-  object-fit: cover !important;
+  height: auto !important;
+  object-fit: cover;
 }
-
 #qrScanner {
   width: 100%;
   height: 70vh;
 }
+
+
