@@ -150,31 +150,47 @@ cartBody.onclick = (e) => {
   }
 };
 
-/* ================= ULTRA RELIABLE QR SCANNER (iPhone FIX) ================= */
+/* ================= ULTRA RELIABLE QR SCANNER (FORCE BACK CAMERA iOS) ================= */
 
 let html5Qr = null;
 let isScanning = false;
+
+async function getBackCameraId() {
+  const devices = await Html5Qrcode.getCameras();
+
+  if (!devices || devices.length === 0) {
+    throw new Error("No cameras found");
+  }
+
+  // Prefer camera with "back" or "rear" in label (iPhone gives label after permission)
+  const backCam =
+    devices.find(d => /back|rear|environment/i.test(d.label)) ||
+    devices[devices.length - 1];   // fallback = last camera usually back
+
+  console.log("📷 Using camera:", backCam);
+
+  return backCam.id;
+}
+
 
 scanBtn.onclick = async () => {
   if (isScanning) return;
 
   qrScannerModal.style.display = "flex";
-
-  const container = document.getElementById("qrScanner");
-  container.innerHTML = "";
+  document.getElementById("qrScanner").innerHTML = "";
 
   html5Qr = new Html5Qrcode("qrScanner");
 
   try {
     isScanning = true;
 
+    const cameraId = await getBackCameraId();
+
     await html5Qr.start(
+      cameraId,                              // ✅ Explicit deviceId
       {
-        facingMode: { exact: "environment" }   // ✅ Force back camera (important for iPhone)
-      },
-      {
-        fps: 10,                               // ✅ iOS prefers clarity over speed
-        qrbox: { width: 280, height: 280 },    // ✅ Bigger box improves detection
+        fps: 10,
+        qrbox: { width: 300, height: 300 },
         aspectRatio: 1.777,
         videoConstraints: {
           width: { ideal: 1280 },
@@ -182,7 +198,7 @@ scanBtn.onclick = async () => {
         }
       },
       onScanSuccess,
-      onScanError
+      () => {}
     );
 
   } catch (err) {
@@ -240,11 +256,6 @@ async function onScanSuccess(decodedText) {
 }
 
 
-function onScanError(_) {
-  // ignore decode noise
-}
-
-
 async function stopScanner() {
   try {
     if (html5Qr) {
@@ -252,9 +263,7 @@ async function stopScanner() {
       await html5Qr.clear();
       html5Qr = null;
     }
-  } catch (e) {
-    console.warn("Stop scanner error:", e);
-  }
+  } catch (e) {}
 }
 
 
