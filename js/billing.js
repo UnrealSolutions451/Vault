@@ -150,28 +150,28 @@ cartBody.onclick = (e) => {
   }
 };
 
-/* ================= ULTRA RELIABLE QR SCANNER (FORCE BACK CAMERA iOS) ================= */
+/* ================= IOS SAFE FULLSCREEN QR SCANNER ================= */
 
 let html5Qr = null;
 let isScanning = false;
 
-async function getBackCameraId() {
+async function getCameraIdSafe() {
   const devices = await Html5Qrcode.getCameras();
 
   if (!devices || devices.length === 0) {
     throw new Error("No cameras found");
   }
 
-  // Prefer camera with "back" or "rear" in label (iPhone gives label after permission)
+  console.log("📷 Cameras:", devices);
+
+  // Try to find back camera, otherwise fallback first camera
   const backCam =
     devices.find(d => /back|rear|environment/i.test(d.label)) ||
-    devices[devices.length - 1];   // fallback = last camera usually back
-
-  console.log("📷 Using camera:", backCam);
+    devices[devices.length - 1] ||
+    devices[0];
 
   return backCam.id;
 }
-
 
 scanBtn.onclick = async () => {
   if (isScanning) return;
@@ -184,25 +184,21 @@ scanBtn.onclick = async () => {
   try {
     isScanning = true;
 
-    const cameraId = await getBackCameraId();
+    const cameraId = await getCameraIdSafe();
 
     await html5Qr.start(
-      cameraId,                              // ✅ Explicit deviceId
+      { deviceId: { exact: cameraId } },   // ✅ safest for iOS Chrome
       {
-        fps: 10,
-        qrbox: { width: 300, height: 300 },
-        aspectRatio: 1.777,
-        videoConstraints: {
-          width: { ideal: 1280 },
-          height: { ideal: 720 }
-        }
+        fps: 15,
+        disableFlip: true   // prevents mirror issues
+        // ❌ NO qrbox → full frame scan
       },
       onScanSuccess,
       () => {}
     );
 
   } catch (err) {
-    console.error("Camera start failed:", err);
+    console.error("📛 Camera start failed:", err);
     alert("Camera unavailable or permission denied ❌");
     closeScanner();
   }
@@ -267,11 +263,13 @@ async function stopScanner() {
 }
 
 
-closeScannerBtn.onclick = async () => {
+async function closeScanner() {
   isScanning = false;
   await stopScanner();
   qrScannerModal.style.display = "none";
-};
+}
+
+closeScannerBtn.onclick = closeScanner;
 
 
 
