@@ -150,7 +150,7 @@ cartBody.onclick = (e) => {
   }
 };
 
-/* ================= FAST QR SCANNER (INSTANT MODE) ================= */
+/* ================= ULTRA RELIABLE QR SCANNER (iPhone FIX) ================= */
 
 let html5Qr = null;
 let isScanning = false;
@@ -169,11 +169,17 @@ scanBtn.onclick = async () => {
     isScanning = true;
 
     await html5Qr.start(
-      { facingMode: "environment" },   // ✅ Back camera
       {
-        fps: 25,                       // ✅ Faster detection
-        qrbox: { width: 220, height: 220 }, // ✅ Smaller box = faster lock
-        focusMode: "continuous"
+        facingMode: { exact: "environment" }   // ✅ Force back camera (important for iPhone)
+      },
+      {
+        fps: 10,                               // ✅ iOS prefers clarity over speed
+        qrbox: { width: 280, height: 280 },    // ✅ Bigger box improves detection
+        aspectRatio: 1.777,
+        videoConstraints: {
+          width: { ideal: 1280 },
+          height: { ideal: 720 }
+        }
       },
       onScanSuccess,
       onScanError
@@ -188,24 +194,22 @@ scanBtn.onclick = async () => {
 
 
 async function onScanSuccess(decodedText) {
-  if (!isScanning) return;   // prevent duplicate scans
+  if (!isScanning) return;
   isScanning = false;
 
   console.log("🧾 QR TEXT:", decodedText);
 
-  await stopScanner();      // ✅ Stop camera instantly
+  await stopScanner();
   qrScannerModal.style.display = "none";
 
   let payload;
-
   try {
     payload = JSON.parse(decodedText.trim());
-  } catch (err) {
+  } catch {
     alert("Invalid QR data ❌");
     return;
   }
 
-  // ✅ Validate payload
   if (!payload.item_id || !payload.store_id) {
     alert("QR missing item data ❌");
     return;
@@ -225,7 +229,6 @@ async function onScanSuccess(decodedText) {
     return;
   }
 
-  // ✅ Add to cart instantly
   cart.push({
     id: item.id,
     name: item.name,
@@ -234,12 +237,11 @@ async function onScanSuccess(decodedText) {
   });
 
   renderCart();
-  console.log("🛒 Added to cart:", item.name);
 }
 
 
-function onScanError(err) {
-  // Ignore continuous scan errors for performance
+function onScanError(_) {
+  // ignore decode noise
 }
 
 
