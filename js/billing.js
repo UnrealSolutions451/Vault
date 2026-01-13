@@ -209,38 +209,58 @@ async function onScanSuccess(decodedText) {
   if (!isScanning) return;
   isScanning = false;
 
-  console.log("🧾 QR TEXT:", decodedText);
+  console.log("🧾 RAW QR:", decodedText);
 
   await stopScanner();
   qrScannerModal.style.display = "none";
 
+  // ✅ Clean invisible characters (iOS issue)
+  let cleanText = decodedText
+    .replace(/[\u0000-\u001F]+/g, "")   // remove control chars
+    .replace(/\n/g, "")
+    .replace(/\r/g, "")
+    .trim();
+
+  console.log("✅ CLEAN QR:", cleanText);
+
   let payload;
   try {
-    payload = JSON.parse(decodedText.trim());
-  } catch {
-    alert("Invalid QR data ❌");
+    payload = JSON.parse(cleanText);
+  } catch (e) {
+    console.error("JSON parse failed:", e);
+    alert("Invalid QR format ❌");
     return;
   }
 
-  if (!payload.item_id || !payload.store_id) {
+  console.log("📦 PARSED PAYLOAD:", payload);
+
+  // ✅ Defensive validation (important)
+  if (
+    !payload ||
+    typeof payload !== "object" ||
+    !payload.item_id ||
+    !payload.store_id
+  ) {
     alert("QR missing item data ❌");
     return;
   }
 
-  if (String(payload.store_id) !== String(profile.store_id)) {
+  if (String(payload.store_id).trim() !== String(profile.store_id).trim()) {
     alert("QR belongs to another store ❌");
     return;
   }
 
   const item = inventory.find(
-    i => String(i.id) === String(payload.item_id)
+    i => String(i.id).trim() === String(payload.item_id).trim()
   );
 
   if (!item) {
+    console.warn("Inventory:", inventory);
     alert("Item not found in inventory ❌");
     return;
   }
 
+  // ✅ Add to cart
   cart.push({
     id: item.id,
     name: item.name,
@@ -249,7 +269,9 @@ async function onScanSuccess(decodedText) {
   });
 
   renderCart();
+  console.log("🛒 Added:", item.name);
 }
+
 
 
 async function stopScanner() {
