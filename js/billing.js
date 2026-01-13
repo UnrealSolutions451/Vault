@@ -153,114 +153,78 @@ cartBody.onclick = (e) => {
 /* ================= IOS SAFE FULLSCREEN QR SCANNER ================= */
 
 let html5Qr = null;
-let isScanning = false;
-
-async function getCameraIdSafe() {
-  const devices = await Html5Qrcode.getCameras();
-
-  if (!devices || devices.length === 0) {
-    throw new Error("No cameras found");
-  }
-
-  console.log("📷 Cameras:", devices);
-
-  // Try to find back camera, otherwise fallback first camera
-  const backCam =
-    devices.find(d => /back|rear|environment/i.test(d.label)) ||
-    devices[devices.length - 1] ||
-    devices[0];
-
-  return backCam.id;
-}
+let scanning = false;
 
 scanBtn.onclick = async () => {
-  if (isScanning) return;
-
   qrScannerModal.style.display = "flex";
-  document.getElementById("qrScanner").innerHTML = "";
+
+  const container = document.getElementById("qrScanner");
+  container.innerHTML = "";
 
   html5Qr = new Html5Qrcode("qrScanner");
 
   try {
-    isScanning = true;
-
-    const cameraId = await getCameraIdSafe();
+    scanning = true;
 
     await html5Qr.start(
-      { deviceId: { exact: cameraId } },   // ✅ safest for iOS Chrome
       {
-        fps: 15,
-        disableFlip: true   // prevents mirror issues
-        // ❌ NO qrbox → full frame scan
+        facingMode: "environment"   // ✅ force back camera (works on iPhone)
       },
-      onScanSuccess,
+      {
+        fps: 20,                   // ⚡ faster detection
+        disableFlip: true          // improves iOS detection
+      },
+      onFastScanSuccess,
       () => {}
     );
-
   } catch (err) {
-    console.error("📛 Camera start failed:", err);
+    console.error("Camera start error:", err);
     alert("Camera unavailable or permission denied ❌");
-    closeScanner();
   }
 };
 
 
-async function onScanSuccess(decodedText) {
-  if (!isScanning) return;
-  isScanning = false;
+async function onFastScanSuccess(decodedText) {
+  if (!scanning) return;
+  scanning = false;
 
-  console.log("🧾 RAW QR:", decodedText);
+  console.log("⚡ FAST QR:", decodedText);
 
   await stopScanner();
   qrScannerModal.style.display = "none";
 
-  // ✅ Clean invisible characters (iOS issue)
-  let cleanText = decodedText
-    .replace(/[\u0000-\u001F]+/g, "")   // remove control chars
-    .replace(/\n/g, "")
-    .replace(/\r/g, "")
+  // ✅ Clean iOS hidden characters
+  const clean = decodedText
+    .replace(/[\u0000-\u001F]+/g, "")
     .trim();
-
-  console.log("✅ CLEAN QR:", cleanText);
 
   let payload;
   try {
-    payload = JSON.parse(cleanText);
-  } catch (e) {
-    console.error("JSON parse failed:", e);
-    alert("Invalid QR format ❌");
+    payload = JSON.parse(clean);
+  } catch {
+    alert("Invalid QR ❌");
     return;
   }
 
-  console.log("📦 PARSED PAYLOAD:", payload);
-
-  // ✅ Defensive validation (important)
-  if (
-    !payload ||
-    typeof payload !== "object" ||
-    !payload.item_id ||
-    !payload.store_id
-  ) {
+  if (!payload?.item_id || !payload?.store_id) {
     alert("QR missing item data ❌");
     return;
   }
 
-  if (String(payload.store_id).trim() !== String(profile.store_id).trim()) {
+  if (String(payload.store_id) !== String(profile.store_id)) {
     alert("QR belongs to another store ❌");
     return;
   }
 
   const item = inventory.find(
-    i => String(i.id).trim() === String(payload.item_id).trim()
+    i => String(i.id) === String(payload.item_id)
   );
 
   if (!item) {
-    console.warn("Inventory:", inventory);
     alert("Item not found in inventory ❌");
     return;
   }
 
-  // ✅ Add to cart
   cart.push({
     id: item.id,
     name: item.name,
@@ -269,10 +233,7 @@ async function onScanSuccess(decodedText) {
   });
 
   renderCart();
-  console.log("🛒 Added:", item.name);
 }
-
-
 
 async function stopScanner() {
   try {
@@ -282,16 +243,12 @@ async function stopScanner() {
       html5Qr = null;
     }
   } catch (e) {}
-}
 
-
-async function closeScanner() {
-  isScanning = false;
-  await stopScanner();
+  scanning = false;
   qrScannerModal.style.display = "none";
 }
 
-closeScannerBtn.onclick = closeScanner;
+closeScannerBtn.onclick = stopScanner;
 
 
 
